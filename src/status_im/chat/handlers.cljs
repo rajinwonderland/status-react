@@ -3,10 +3,11 @@
             [re-frame.core :as re-frame]
             [status-im.chat.models :as models]
             [status-im.i18n :as i18n]
-            [status-im.protocol.core :as protocol]
             [status-im.ui.components.styles :as components.styles]
             [status-im.utils.handlers :as handlers]
             [status-im.utils.random :as random]
+            [status-im.transport.message.v1.group-chat :as group-chat]
+            [status-im.transport.message.core :as transport]
             status-im.chat.events
             [status-im.utils.datetime :as datetime]))
 
@@ -168,29 +169,44 @@
   (fn [{{:keys [current-public-key] :as db} :db}
        [_ {:keys                                                    [from]
            {:keys [group-id group-name contacts keypair timestamp]} :payload}]]
-    (let [{:keys [private public]} keypair]
-      (let [contacts' (keep (fn [ident]
-                              (when (not= ident current-public-key)
-                                {:identity ident})) contacts)
-            chat      (get-in db [:chats group-id])
-            new-chat  {:chat-id     group-id
-                       :name        group-name
-                       :group-chat  true
-                       :group-admin from
-                       :public-key  public
-                       :private-key private
-                       :contacts    contacts'
-                       :added-to-at timestamp
-                       :timestamp   timestamp
-                       :is-active   true}]
-        (when (or (nil? chat)
-                  (models/new-update? chat timestamp))
-          {::start-watching-group (merge {:group-id group-id
-                                          :keypair keypair}
-                                         (select-keys db [:web3 :current-public-key]))
-           :dispatch (if chat
-                       [:update-chat! new-chat]
-                       [:add-chat group-id new-chat])})))))
+    (let [contacts' (keep (fn [ident]
+                            (when (not= ident current-public-key)
+                              {:identity ident})) contacts)
+          chat      (get-in db [:chats group-id])
+          new-chat  {:chat-id     group-id
+                     :name        group-name
+                     :group-chat  true
+                     :group-admin from
+                     :contacts    contacts'
+                     :added-to-at timestamp
+                     :timestamp   timestamp
+                     :is-active   true}]
+      (when (or (nil? chat)
+                (models/new-update? chat timestamp))
+        {:dispatch (if chat
+                     [:update-chat! new-chat]
+                     [:add-chat group-id new-chat])}))))
+
+(handlers/register-handler
+  :leave-group-chat
+  ;; stop listening to group here
+  (fn [{{:keys [web3 current-chat-id chats current-public-key] :as db} :db :as cofx} _]
+    (let [{:keys [public?]} (chats current-chat-id)
+          dispatched-events {:dispatch-n [[:remove-chat current-chat-id]
+                                          [:navigation-replace :home]]}]
+      (if public?
+        dispatched-events
+        (handlers/merge-fx cofx
+                           dispatched-events
+                           (transport/send current-chat-id (group-chat/map->GroupLeave {})))))))
+
+(handlers/register-handler-fx
+  :leave-group-chat?
+  (fn []
+    {:show-confirmation {:title               (i18n/label :t/leave-confirmation)
+                         :content             (i18n/label :t/leave-group-chat-confirmation)
+                         :confirm-button-text (i18n/label :t/leave)
+                         :on-accept           #(re-frame/dispatch [:leave-group-chat])}}))
 
 (handlers/register-handler-fx
   :show-profile
