@@ -135,7 +135,7 @@ class TestTransaction(SingleDeviceTestCase):
         send_transaction.done_button.click_until_presence_of_element(send_transaction.sign_later_button)
         send_transaction.sign_later_button.click()
         send_transaction.yes_button.click()
-        send_transaction.ok_button_apk.click()
+        send_transaction.ok_button.click()
         transactions_view = wallet_view.transactions_button.click()
         transactions_view.unsigned_tab.click()
         transactions_view.sign_button.click()
