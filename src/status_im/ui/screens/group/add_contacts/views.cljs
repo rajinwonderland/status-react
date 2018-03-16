@@ -69,20 +69,6 @@
       (:name group)]
      [toggle-list contacts group-toggle-contact]]))
 
-(defn toggle-participants-handler []
-  (re-frame/dispatch [:add-new-group-chat-participants])
-  (re-frame/dispatch [:navigate-back]))
-
-(defn add-participants-toggle-list-toolbar [selected-contacts-count]
-  [toolbar/toolbar {}
-   toolbar/default-nav-back
-   [toolbar/content-title (i18n/label :t/add-members)]
-   (when (pos? selected-contacts-count)
-     [toolbar/text-action {:handler    toggle-participants-handler
-                           :uppercase? components.styles/uppercase?
-                           :style      styles/toggle-list-action}
-      (i18n/label :t/add)])])
-
 (defview add-participants-toggle-list []
   (letsubs [contacts                [:all-new-contacts]
             chat-name               [:chat :name]
