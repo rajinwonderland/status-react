@@ -20,7 +20,7 @@
   (concat (if pending?
             [{:label  (i18n/label :t/add-to-contacts)
               :icon   :icons/add-contact
-              :action #(re-frame/dispatch [:add-contact whisper-identity])}]
+              :action #(re-frame/dispatch [:add-pending-contact whisper-identity])}]
             [{:label     (i18n/label :t/in-contacts)
               :icon      :icons/in-contacts
               :disabled? true}])

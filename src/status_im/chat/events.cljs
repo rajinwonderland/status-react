@@ -244,52 +244,44 @@
 (handlers/register-handler-fx
   :remove-chat
   [re-frame/trim-v]
-  (fn [{:keys [db]} [chat-id]]
-    (let [{:keys [chat-id group-chat debug?]} (get-in db [:chats chat-id])]
-      (cond-> {:db                      (-> db
-                                            (update :chats dissoc chat-id)
-                                            (update :deleted-chats (fnil conj #{}) chat-id))
-               :delete-pending-messages chat-id}
-              (or group-chat debug?)
-              (assoc :delete-messages chat-id)
-              debug?
-              (assoc :delete-chat chat-id)
-              (not debug?)
-              (assoc :deactivate-chat chat-id)))))
+  (fn [cofx [chat-id]]
+    (models/remove-chat chat-id cofx)))
 
 (handlers/register-handler-fx
-  :delete-chat
+  :remove-chat-and-navigate-home
   [re-frame/trim-v]
   (fn [cofx [chat-id]]
     (-> (models/remove-chat chat-id cofx)
         (update :db navigation/replace-view :home))))
 
 (handlers/register-handler-fx
-  :delete-chat?
+  :remove-chat-and-navigate-home?
   [re-frame/trim-v]
   (fn [_ [chat-id group?]]
     {:show-confirmation {:title               (i18n/label :t/delete-confirmation)
                          :content             (i18n/label (if group? :t/delete-group-chat-confirmation :t/delete-chat-confirmation))
                          :confirm-button-text (i18n/label :t/delete)
-                         :on-accept           #(re-frame/dispatch [:delete-chat chat-id])}}))
-
-(defn remove-chats [db chat-id]
-  (let [chat (get-in db [:chats chat-id])]
-    {:db                  (-> db
-                              (update :chats dissoc chat-id)
-                              (update :deleted-chats (fnil conj #{}) chat-id))
-     :delete-chat          chat
-     :delete-chat-messages chat}))
+                         :on-accept           #(re-frame/dispatch [:remove-chat-and-navigate-home chat-id])}}))
 
 (handlers/register-handler-fx
-  :remove-chat
+  :create-new-public-chat
   [re-frame/trim-v]
-  (fn [{:keys [db]} [chat-id]]
-    (remove-chats db chat-id)))
-
-(handlers/register-handler-fx
-  :remove-chat-and-navigate-home
-  [re-frame/trim-v]
-  (fn [{:keys [db]} [chat-id]]
-    (merge (remove-chats db chat-id)
-           {:dispatch [:navigation-replace :home]})))
+  (fn [{:keys [db now] :as cofx} [topic]]
+    (if (get-in db [:chats topic])
+      (handlers/merge-fx cofx
+                         (navigation/navigate-to-clean :home)
+                         (navigate-to-chat topic))
+      (let [chat {:chat-id               topic
+                  :name                  topic
+                  :color                 components.styles/default-chat-color
+                  :group-chat            true
+                  :public?               true
+                  :is-active             true
+                  :timestamp             now
+                  :last-to-clock-value   0
+                  :last-from-clock-value 0}]
+        (handlers/merge-fx {:db        (assoc-in db [:chats topic] chat)
+                            :save-chat chat}
+                           (navigation/navigate-to-clean :home)
+                           (navigate-to-chat topic)
+                           (public-chat/join-public-chat topic))))))

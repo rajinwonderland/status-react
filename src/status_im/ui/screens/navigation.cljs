@@ -23,8 +23,7 @@
 ;; public fns
 
 (defn navigate-to-clean [view-id {:keys [db]}]
-  {:db (-> db
-           (assoc :navigation-stack (list))
+  {:db (-> (assoc db :navigation-stack (list))
            (push-view view-id))})
 
 (defmulti preload-data!

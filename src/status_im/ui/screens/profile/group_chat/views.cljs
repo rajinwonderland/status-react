@@ -54,7 +54,7 @@
                                         (i18n/label :t/delete-group-chat-confirmation)
                                         (i18n/label :t/delete)
                                         (fn []
-                                          (re-frame/dispatch [:delete-chat chat-id])))}
+                                          (re-frame/dispatch [:remove-chat-and-navigate-home chat-id])))}
      {:label  (i18n/label :t/leave-group)
       :icon   :icons/arrow-left
       :action #(utils/show-confirmation (i18n/label :t/leave-group-title)
