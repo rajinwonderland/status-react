@@ -13,11 +13,13 @@
                                cofx))
   (receive [this chat-id signature cofx]
     (handlers/merge-fx cofx
-                       {:shh/add-new-sym-key {:web3 (get-in cofx [:db :web3])
-                                              :sym-key sym-key
-                                              :chat-id chat-id
-                                              :message message
-                                              :success-event ::add-new-sym-key}}
+                       {:shh/add-new-sym-key {:web3       (get-in cofx [:db :web3])
+                                              :sym-key    sym-key
+                                              :on-success (fn [sym-key sym-key-id]
+                                                            (re-frame/dispatch [::add-new-sym-key {:sym-key-id sym-key-id
+                                                                                                   :sym-key    sym-key
+                                                                                                   :chat-id    chat-id
+                                                                                                   :message    message}]))}}
                        (protocol/init-chat chat-id))))
 
 (defrecord ContactRequest [name profile-image address fcm-token]
@@ -26,9 +28,11 @@
     (let [message-id (transport.utils/message-id this)]
       (handlers/merge-fx cofx
                          {:shh/get-new-sym-key {:web3 (get-in cofx [:db :web3])
-                                                :chat-id chat-id
-                                                :message this
-                                                :success-event ::send-new-sym-key}}
+                                                :on-success (fn [sym-key sym-key-id]
+                                                              (re-frame/dispatch [::send-new-sym-key {:sym-key-id sym-key-id
+                                                                                                      :sym-key    sym-key
+                                                                                                      :chat-id    chat-id
+                                                                                                      :message    message}]))}}
                          (protocol/init-chat chat-id)
                          (protocol/requires-ack message-id chat-id))))
   (receive [this chat-id signature {:keys [db] :as cofx}]

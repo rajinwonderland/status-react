@@ -9,8 +9,10 @@
   (handlers/merge-fx cofx
                      {:shh/generate-sym-key-from-password {:web3 (:web3 db)
                                                            :password chat-id
-                                                           :chat-id chat-id
-                                                           :success-event ::add-new-sym-key}}
+                                                           :on-success (fn [sym-key sym-key-id]
+                                                                         (re-frame/dispatch [::add-new-sym-key {:chat-id    chat-id
+                                                                                                                :sym-key    sym-key
+                                                                                                                :sym-key-id sym-key-id}]))}}
                      (protocol/init-chat chat-id)))
 
 (handlers/register-handler-fx

@@ -59,7 +59,10 @@
         {;;TODO (yenda) remove once go implements persistence
          :shh/add-sym-keys {:web3 web3
                             :transport transport
-                            :success-event ::sym-key-added}
+                            :on-success (fn [chat-id sym-key sym-key-id]
+                                          (re-frame/dispatch [::sym-key-added {:chat-id    chat-id
+                                                                               :sym-key    sym-key
+                                                                               :sym-key-id sym-key-id}]))}
          :transport/init-whisper {:web3       web3
                                   :public-key public-key
                                   :transport  transport}
