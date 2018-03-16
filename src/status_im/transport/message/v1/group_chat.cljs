@@ -3,42 +3,45 @@
             [status-im.utils.handlers :as handlers]
             [status-im.transport.message.core :as message]
             [status-im.transport.message.v1.protocol :as protocol]
-            [status-im.transport.utils :as transport.utils]))
+            [status-im.transport.utils :as transport.utils]
+            [status-im.data-store.chats :as chats]))
 
-(defrecord NewGroupKey [sym-key message]
+
+(defrecord NewGroupKey [chat-id sym-key message]
   message/StatusMessage
-  (send [this chat-id cofx]
+  (send [this _ cofx]
     (protocol/send-with-pubkey {:chat-id chat-id
                                 :payload this}
                                cofx))
   (receive [this chat-id signature cofx]
     (handlers/merge-fx cofx
-                       {:shh/add-new-sym-key {:web3 (get-in cofx [:db :web3])
-                                              :sym-key sym-key
-                                              :chat-id chat-id
-                                              :message message
+                       {:shh/add-new-sym-key {:web3          (get-in cofx [:db :web3])
+                                              :sym-key       sym-key
+                                              :chat-id       chat-id
+                                              :message       message
                                               :success-event ::add-new-sym-key}}
                        (protocol/init-chat chat-id))))
 
-(defrecord GroupAdminAdd [added-participants]
-  message/StatusMessage
-  (send [this chat-id cofx])
-  (receive [this chat-id signature cofx]))
+(defn update-group-key [cofx]
+  (when admin?
+    (message/send chat-id (map->NewGroupKey {:chat-id chat-id
+                                             :sym-key sym-key
+                                             :message message}))))
 
-(defrecord GroupAdminRemove [removed-participants]
+(defrecord GroupAdminUpdate [added-participants]
   message/StatusMessage
-  (send [this chat-id cofx])
-  (receive [this chat-id signature cofx]))
-
-(defrecord GroupInvite [content content-type message-type to-clock-value timestamp]
-  message/StatusMessage
-  (send [this chat-id cofx])
-  (receive [this chat-id signature cofx]))
+  (send [this chat-id cofx]
+    )
+  (receive [this chat-id signature cofx]
+    (message/participant-added signature)))
 
 (defrecord GroupLeave []
   message/StatusMessage
   (send [this chat-id cofx])
-  (receive [this chat-id signature cofx]))
+  (receive [this chat-id signature cofx]
+    (handlers/merge-fx cofx
+                       update-group-key
+                       (message/participant-left signature))))
 
 (handlers/register-handler-fx
   ::send-new-sym-key
@@ -55,8 +58,7 @@
                                                                 (assoc :sym-key-id sym-key-id)
                                                                 ;;TODO (yenda) remove once go implements persistence
                                                                 (assoc :sym-key sym-key))}}
-                         (message/send (NewGroupKey. sym-key message)
-                                       chat-id)))))
+                         (message/send (NewGroupKey. chat-id sym-key message) chat-id)))))
 
 (handlers/register-handler-fx
   ::add-new-sym-key

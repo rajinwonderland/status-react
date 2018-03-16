@@ -33,21 +33,56 @@
   (let [selected-contacts'  (mapv #(hash-map :identity %) selected-contacts)
         chat-name (if-not (string/blank? group-name)
                     group-name
-                    (group-name-from-contacts contacts selected-contacts username))
-        {:keys [public private]} nil;;(protocol/new-keypair!)
-        ]
-    {:chat-id               (random/id)
-     :public-key            public
-     :private-key           private
-     :name                  chat-name
-     :color                 components.styles/default-chat-color
-     :group-chat            true
-     :group-admin           current-public-key
-     :is-active             true
-     :timestamp             timestamp
-     :contacts              selected-contacts'
+                    (group-name-from-contacts contacts selected-contacts username))]
+    {:chat-id     (random/id)
+     :name        chat-name
+     :color       components.styles/default-chat-color
+     :group-chat  true
+     :group-admin current-public-key
+     :is-active   true
+     :timestamp timestamp
+     :contacts    selected-contacts'
      :last-to-clock-value   0
      :last-from-clock-value 0}))
+
+(handlers/register-handler-fx
+  :create-new-group-chat-and-open
+  (fn [{:keys [db] :as cofx} [_ group-name]]
+    (let [{:group/keys [selected-contacts]} db
+          {:keys [chat-id] :as new-chat} (prepare-group-chat (select-keys db [:group/selected-contacts :current-public-key :username
+                                                                              :contacts/contacts])
+                                                             group-name)]
+      (handlers/merge-fx cofx
+                         {:db (-> db
+                                  (assoc-in [:chats chat-id] new-chat)
+                                  (assoc :group/selected-contacts #{}))
+                          :save-chat new-chat
+                          :dispatch-n [[:navigate-to-clean :home]
+                                       [:navigate-to-chat (:chat-id new-chat)]]}
+                         (transport/send (group-chat/GroupAdminUpdate. selected-contacts) chat-id)))))
+
+(handlers/register-handler-fx
+  :group-chat-invite-received
+  (fn [{{:keys [current-public-key] :as db} :db}
+       [_ {:keys                                                    [from]
+           {:keys [group-id group-name contacts keypair timestamp]} :payload}]]
+    (let [contacts' (keep (fn [ident]
+                            (when (not= ident current-public-key)
+                              {:identity ident})) contacts)
+          chat      (get-in db [:chats group-id])
+          new-chat  {:chat-id     group-id
+                     :name        group-name
+                     :group-chat  true
+                     :group-admin from
+                     :contacts    contacts'
+                     :added-to-at timestamp
+                     :timestamp   timestamp
+                     :is-active   true}]
+      (when (or (nil? chat)
+                (models/new-update? chat timestamp))
+        {:dispatch (if chat
+                     [:update-chat! new-chat]
+                     [:add-chat group-id new-chat])}))))
 
 (handlers/register-handler
   :leave-group-chat
@@ -60,7 +95,7 @@
         dispatched-events
         (handlers/merge-fx cofx
                            dispatched-events
-                           (transport/send current-chat-id (group-chat/map->GroupLeave {})))))))
+                           (transport/send (group-chat/GroupLeave.) current-chat-id ))))))
 
 (handlers/register-handler-fx
   :leave-group-chat?

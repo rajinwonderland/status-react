@@ -57,26 +57,30 @@
 (handlers/register-handler-fx
   :add-new-group-chat-participants
   (fn [{{:keys [current-chat-id selected-participants] :as db} :db :as cofx} _]
-    (let [new-identities (map #(hash-map :identity %) selected-participants)]
+    (let [new-identities (map #(hash-map :identity %) selected-participants)
+          participants   (concat (get-in db [:chats current-chat-id :contacts])
+                                 selected-participants)]
       (handlers/merge-fx cofx
                          {:db (-> db
-                                  (update-in [:chats current-chat-id :contacts] concat new-identities)
+                                  (assoc-in [:chats current-chat-id :contacts] participants)
                                   (assoc :selected-participants #{}))
                           :data-store/add-members-to-chat (select-keys db [:current-chat-id :selected-participants])}
-                         (transport/send current-chat-id (group-chat/map->GroupAdminAdd {:added-participants selected-participants}))))))
+                         (transport/send (group-chat/GroupAdminUpdate. participants) current-chat-id )))))
 
 (defn- remove-identities [collection identities]
-  (remove #(identities (:identity %)) collection))
+  )
 
 (handlers/register-handler-fx
   :remove-group-chat-participants
   (fn [{{:keys [current-chat-id] :as db} :db :as cofx} [_ removed-participants]]
-    (handlers/merge-fx cofx
-                       {:db (update-in db [:chats current-chat-id :contacts] remove-identities removed-participants)
-                        :data-store/remove-members-from-chat [current-chat-id removed-participants]
-                        :data-store/create-removing-messages (merge {:participants removed-participants}
-                                                                    (select-keys db [:current-chat-id :contacts/contacts]))}
-                       (transport/send current-chat-id (group-chat/map->GroupAdminRemove {:removed-participants removed-participants})))))
+    (let [participants (remove #(removed-participants (:identity %))
+                               (get-in db [:chats current-chat-id :contacts]))]
+      (handlers/merge-fx cofx
+                         {:db (assoc-in db [:chats current-chat-id :contacts] participants)
+                          :data-store/remove-members-from-chat [current-chat-id removed-participants]
+                          :data-store/create-removing-messages (merge {:participants removed-participants}
+                                                                      (select-keys db [:current-chat-id :contacts/contacts]))}
+                         (transport/send (group-chat/GroupAdminUpdate. participants) current-chat-id )))))
 
 (handlers/register-handler-fx
   :set-group-chat-name

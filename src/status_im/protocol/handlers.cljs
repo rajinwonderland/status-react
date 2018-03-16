@@ -34,13 +34,6 @@
   (fn [processed-message]
     (async/go (async/>! protocol-realm-queue #(processed-messages/save processed-message)))))
 
-(defn system-message [message-id timestamp content]
-  {:from         "system"
-   :message-id   message-id
-   :timestamp    timestamp
-   :content      content
-   :content-type constants/text-content-type})
-
 (re-frame/reg-fx
   ::status-init-jail
   (fn []
