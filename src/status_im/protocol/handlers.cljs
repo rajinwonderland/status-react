@@ -1,11 +1,9 @@
 (ns status-im.protocol.handlers
   (:require [cljs.core.async :as async]
             [re-frame.core :as re-frame]
-            [status-im.constants :as constants]
-            [status-im.data-store.processed-messages :as processed-messages]
+            [status-im.constants :as constants] 
             [status-im.native-module.core :as status]
-            [status-im.transport.message-cache :as message-cache]
-            [status-im.utils.async :as async-utils]
+            [status-im.transport.message-cache :as message-cache] 
             [status-im.utils.datetime :as datetime]
             [status-im.utils.ethereum.core :as utils]
             [status-im.utils.handlers :as handlers]
@@ -17,9 +15,6 @@
   (fn [coeffects _]
     (assoc coeffects :web3 (web3-provider/make-web3))))
 
-;;;; FX
-(def ^:private protocol-realm-queue (async-utils/task-queue 2000))
-
 (re-frame/reg-fx
   ::web3-get-syncing
   (fn [web3]
@@ -30,22 +25,9 @@
          (re-frame/dispatch [:update-sync-state error sync]))))))
 
 (re-frame/reg-fx
-  ::save-processed-messages
-  (fn [processed-message]
-    (async/go (async/>! protocol-realm-queue #(processed-messages/save processed-message)))))
-
-(re-frame/reg-fx
   ::status-init-jail
   (fn []
     (status/init-jail)))
-
-(re-frame/reg-fx
-  ::load-processed-messages!
-  (fn []
-    (let [now      (datetime/timestamp)
-          messages (processed-messages/get-filtered (str "ttl > " now))]
-      (message-cache/init! messages)
-      (processed-messages/delete (str "ttl <=" now)))))
 
 ;;; INITIALIZE PROTOCOL
 (handlers/register-handler-fx
@@ -84,11 +66,6 @@
                         :sym-key-id sym-key-id
                         :topic topic
                         :chat-id chat-id}})))
-
-(handlers/register-handler-fx
-  :load-processed-messages
-  (fn [_ _]
-    {::load-processed-messages! nil}))
 
 ;;; NODE SYNC STATE
 

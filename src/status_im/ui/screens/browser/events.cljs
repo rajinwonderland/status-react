@@ -1,15 +1,9 @@
 (ns status-im.ui.screens.browser.events
   (:require status-im.ui.screens.browser.navigation
-            [status-im.utils.handlers :as handlers]
-            [status-im.data-store.browser :as browser-store]
+            [status-im.utils.handlers :as handlers] 
             [re-frame.core :as re-frame]
             [status-im.utils.random :as random]
             [status-im.i18n :as i18n]))
-
-(re-frame/reg-cofx
-  :all-stored-browsers
-  (fn [cofx _]
-    (assoc cofx :all-stored-browsers (browser-store/get-all))))
 
 (handlers/register-handler-fx
   :initialize-browsers
@@ -17,16 +11,6 @@
   (fn [{:keys [db all-stored-browsers]} _]
     (let [browsers (into {} (map #(vector (:browser-id %) %) all-stored-browsers))]
       {:db (assoc db :browser/browsers browsers)})))
-
-(re-frame/reg-fx
-  :save-browser
-  (fn [browser]
-    (browser-store/save browser)))
-
-(re-frame/reg-fx
-  :remove-browser
-  (fn [browser-id]
-    (browser-store/delete browser-id)))
 
 (defn match-url [url]
   (str (when (and url (not (re-find #"^[a-zA-Z-_]+:/" url))) "http://") url))

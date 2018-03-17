@@ -1,9 +1,9 @@
 (ns status-im.commands.handlers.debug
   (:require [re-frame.core :as re-frame]
             [status-im.ui.components.react :as react]
-            [status-im.commands.events.loading :as loading-events]
-            [status-im.data-store.accounts :as accounts]
+            [status-im.commands.events.loading :as loading-events] 
             [status-im.data-store.messages :as messages]
+            [status-im.data-store.accounts :as accounts]
             [status-im.utils.handlers :as handlers]
             [status-im.utils.platform :as platform]
             [status-im.utils.types :as types]

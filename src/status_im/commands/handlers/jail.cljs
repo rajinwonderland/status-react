@@ -8,8 +8,7 @@
             [status-im.ui.components.react :as r]
             [status-im.constants :refer [console-chat-id]]
             [status-im.i18n :refer [get-contact-translated]]
-            [taoensso.timbre :as log]
-            [status-im.data-store.local-storage :as local-storage]))
+            [taoensso.timbre :as log]))
 
 (defn command-handler!
   [_ [chat-id
@@ -105,8 +104,9 @@
                    {:result  result
                     :chat-id chat-id}])))))
 
-(reg-handler :set-local-storage
-  (handlers/side-effect!
-    (fn [_ [{:keys [data chat-id]}]]
-      (local-storage/set-data {:chat-id chat-id
-                               :data    data}))))
+(handlers/register-handler-fx
+  :set-local-storage
+  [trim-v]
+  (fn [_ [{:keys [data chat-id]}]]
+    {:set-local-storage-data {:chat-id chat-id
+                              :data    data}}))

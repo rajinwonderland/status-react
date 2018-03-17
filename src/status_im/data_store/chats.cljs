@@ -35,10 +35,6 @@
   (fn [chat-id]
     (async/go (async/>! core/realm-queue #(data-store/set-inactive chat-id)))))
 
-(defn get-contacts
-  [chat-id]
-  (data-store/get-contacts chat-id))
-
 (re-frame/reg-fx
   :data-store/add-chat-contacts
   (fn [[chat-id contacts]] 
@@ -54,14 +50,3 @@
   (fn [[chat-id prop value]]
     (async/go (async/>! core/realm-queue #(data-store/save-property chat-id prop value)))))
 
-(defn get-property
-  [chat-id property-name]
-  (data-store/get-property chat-id property-name))
-
-(defn removed-at
-  [chat-id]
-  (get-property chat-id :removed-at))
-
-(defn get-active-group-chats
-  []
-  (data-store/get-active-group-chats))

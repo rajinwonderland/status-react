@@ -147,8 +147,8 @@
                                     (map #(assoc %
                                                  :created-at now
                                                  :tags (handlers/get-hashtags (:status %)))))]
-        {:db                           (add-discovers db discovers)
-         :data-store.discover/save-all [discovers maximum-number-of-discoveries]}))))
+        {:db                              (add-discovers db discovers)
+         :data-store/save-all-discoveries [discovers maximum-number-of-discoveries]}))))
 
 (handlers/register-handler-fx
   :status-received
@@ -166,8 +166,8 @@
                       :tags       (handlers/get-hashtags status)
                       :whisper-id from
                       :created-at now}]
-        {:db                           (add-discover db discover)
-         :data-store.discover/save-all [[discover] maximum-number-of-discoveries]}))))
+        {:db                              (add-discover db discover)
+         :data-store/save-all-discoveries [[discover] maximum-number-of-discoveries]}))))
 
 (handlers/register-handler-fx
   :show-status-author-profile

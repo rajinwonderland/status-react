@@ -3,8 +3,7 @@
             [status-im.utils.handlers :as handlers]
             [status-im.transport.message.core :as message]
             [status-im.transport.message.v1.protocol :as protocol]
-            [status-im.transport.utils :as transport.utils]
-            [status-im.data-store.chats :as chats]))
+            [status-im.transport.utils :as transport.utils]))
 
 
 ;; NOTE: We ignore the chat-id from the send and receive method. The chat-id is usually

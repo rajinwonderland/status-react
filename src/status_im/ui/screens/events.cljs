@@ -275,8 +275,7 @@
 (handlers/register-handler-fx
   :initialize-account
   (fn [_ [_ address events-after]]
-    {:dispatch-n (cond-> [[:initialize-account-db address]
-                          [:load-processed-messages]
+    {:dispatch-n (cond-> [[:initialize-account-db address] 
                           [:initialize-protocol address]
                           [:initialize-sync-listener]
                           [:initialize-chats]

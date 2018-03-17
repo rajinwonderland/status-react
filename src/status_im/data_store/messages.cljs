@@ -9,6 +9,13 @@
             [status-im.utils.core :as utils]
             [status-im.utils.datetime :as datetime]))
 
+;; TODO janherich: define as cofx once debug handlers are refactored
+(defn get-log-messages
+  [chat-id]
+  (->> (data-store/get-by-chat-id chat-id 0 100)
+       (filter #(= (:content-type %) constants/content-type-log-message))
+       (map #(select-keys % [:content :timestamp]))))
+
 (defn- command-type?
   [type]
   (contains?
@@ -43,12 +50,6 @@
   :stored-message-ids
   (fn [cofx _]
     (assoc cofx :stored-message-ids (data-store/get-stored-message-ids))))
-
-(defn get-log-messages
-  [chat-id]
-  (->> (data-store/get-by-chat-id chat-id 0 100)
-       (filter #(= (:content-type %) constants/content-type-log-message))
-       (map #(select-keys % [:content :timestamp]))))
 
 (re-frame/reg-cofx
   :stored-unviewed-messages

@@ -1,7 +1,6 @@
 (ns status-im.ui.screens.group.chat-settings.events
   (:require [re-frame.core :as re-frame]
-            [status-im.constants :as constants]
-            [status-im.data-store.chats :as chats]
+            [status-im.constants :as constants] 
             [status-im.data-store.messages :as messages]
             [status-im.i18n :as i18n]
             [status-im.transport.message.v1.group-chat :as group-chat]

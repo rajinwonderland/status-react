@@ -7,16 +7,9 @@
             [status-im.utils.types :as types]
             [status-im.utils.utils :as utils]
             [status-im.utils.config :as config]
-            [status-im.native-module.core :as status]
-            [status-im.data-store.local-storage :as local-storage]
+            [status-im.native-module.core :as status] 
             [status-im.bots.events :as bots-events]
             [taoensso.timbre :as log]))
-
-;; COFX
-(re-frame/reg-cofx
-  :get-local-storage-data
-  (fn [cofx]
-    (assoc cofx :get-local-storage-data local-storage/get-data)))
 
 ;; FX
 (re-frame/reg-fx
