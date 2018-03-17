@@ -15,9 +15,9 @@
 (defrecord NewGroupKey [chat-id sym-key message]
   message/StatusMessage
   (send [this _ cofx]
-    (protocol/send-to-many-with-pubkey {:chat-id chat-id
-                                        :payload this}
-                                       cofx))
+    (protocol/multi-send-with-pubkey {:chat-id chat-id
+                                      :payload this}
+                                     cofx))
   (receive [this _ signature cofx]
     (handlers/merge-fx cofx
                        {:shh/add-new-sym-key {:web3       (get-in cofx [:db :web3])
@@ -30,30 +30,31 @@
                        (protocol/init-chat chat-id))))
 
 (defn send-new-group-key [message participants cofx]
-  (when admin?
-    {:shh/get-new-sym-key {:web3 (get-in cofx [:db :web3])
-                           :on-success (fn [sym-key sym-key-id]
-                                         (re-frame/dispatch [::send-new-sym-key {:chat-ids   participants
-                                                                                 :sym-key    sym-key
-                                                                                 :sym-key-id sym-key-id
-                                                                                 :message    message}]))}}))
+  #_(when admin?
+      {:shh/get-new-sym-key {:web3 (get-in cofx [:db :web3])
+                             :on-success (fn [sym-key sym-key-id]
+                                           (re-frame/dispatch [::send-new-sym-key {:chat-ids   participants
+                                                                                   :sym-key    sym-key
+                                                                                   :sym-key-id sym-key-id
+                                                                                   :message    message}]))}}))
 
 (defrecord GroupAdminUpdate [participants]
   message/StatusMessage
   (send [this chat-id cofx]
     ;;TODO send to many with NewGroupKey
-    (send-new-group-key this participants))
+    (send-new-group-key this participants cofx))
   (receive [this chat-id signature cofx]
-    (message/participant-added signature cofx)))
+    (message/participant-added chat-id signature cofx)))
 
 (defrecord GroupLeave []
   message/StatusMessage
   (send [this chat-id cofx]
     ;;TODO send to group
+    )
   (receive [this chat-id signature cofx]
     (handlers/merge-fx cofx
-                       (update-group-key message participants)
-                       (message/participant-left signature))))
+                       #_(update-group-key message participants)
+                       (message/participant-left chat-id signature))))
 
 (handlers/register-handler-fx
   ::send-new-sym-key

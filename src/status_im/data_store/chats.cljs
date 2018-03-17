@@ -39,17 +39,20 @@
   [chat-id]
   (data-store/get-contacts chat-id))
 
-(defn add-contacts
-  [chat-id identities]
-  (data-store/add-contacts chat-id identities))
+(re-frame/reg-fx
+  :data-store/add-chat-contacts
+  (fn [[chat-id contacts]] 
+    (async/go (async/>! core/realm-queue #(data-store/add-contacts chat-id contacts)))))
 
-(defn remove-contacts
-  [chat-id identities]
-  (data-store/remove-contacts chat-id identities))
+(re-frame/reg-fx
+  :data-store/remove-chat-contacts
+  (fn [[chat-id contacts]]
+    (async/go (async/>! core/realm-queue #(data-store/remove-contacts chat-id contacts)))))
 
-(defn save-property
-  [chat-id property-name value]
-  (data-store/save-property chat-id property-name value))
+(re-frame/reg-fx
+  :data-store/save-chat-property
+  (fn [[chat-id prop value]]
+    (async/go (async/>! core/realm-queue #(data-store/save-property chat-id prop value)))))
 
 (defn get-property
   [chat-id property-name]
@@ -62,7 +65,3 @@
 (defn get-active-group-chats
   []
   (data-store/get-active-group-chats))
-
-(defn set-active
-  [chat-id active?]
-  (save-property chat-id :is-active active?))

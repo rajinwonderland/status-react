@@ -19,7 +19,7 @@
                                                             (re-frame/dispatch [::add-new-sym-key {:sym-key-id sym-key-id
                                                                                                    :sym-key    sym-key
                                                                                                    :chat-id    chat-id
-                                                                                                   :message    message}]))}}
+                                                                                                   :message    this}]))}}
                        (protocol/init-chat chat-id))))
 
 (defrecord ContactRequest [name profile-image address fcm-token]
@@ -32,7 +32,7 @@
                                                               (re-frame/dispatch [::send-new-sym-key {:sym-key-id sym-key-id
                                                                                                       :sym-key    sym-key
                                                                                                       :chat-id    chat-id
-                                                                                                      :message    message}]))}}
+                                                                                                      :message    this}]))}}
                          (protocol/init-chat chat-id)
                          (protocol/requires-ack message-id chat-id))))
   (receive [this chat-id signature {:keys [db] :as cofx}]

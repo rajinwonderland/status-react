@@ -40,18 +40,19 @@
      :group-chat  true
      :group-admin current-public-key
      :is-active   true
-     :timestamp timestamp
+     :timestamp   timestamp
      :contacts    selected-contacts'
      :last-to-clock-value   0
      :last-from-clock-value 0}))
 
 (handlers/register-handler-fx
   :create-new-group-chat-and-open
-  (fn [{:keys [db] :as cofx} [_ group-name]]
+  (fn [{:keys [db now] :as cofx} [_ group-name]]
     (let [{:group/keys [selected-contacts]} db
           {:keys [chat-id] :as new-chat} (prepare-group-chat (select-keys db [:group/selected-contacts :current-public-key :username
                                                                               :contacts/contacts])
-                                                             group-name)]
+                                                             group-name
+                                                             now)]
       (handlers/merge-fx cofx
                          {:db (-> db
                                   (assoc-in [:chats chat-id] new-chat)

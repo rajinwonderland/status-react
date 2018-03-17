@@ -11,21 +11,6 @@
 
 ;;;; FX
 
-(re-frame/reg-fx
-  :data-store/save-chat-property
-  (fn [[current-chat-id property-name value]]
-    (chats/save-property current-chat-id property-name value)))
-
-(re-frame/reg-fx
-  :data-store/add-members-to-chat
-  (fn [{:keys [current-chat-id selected-participants]}]
-    (chats/add-contacts current-chat-id selected-participants)))
-
-(re-frame/reg-fx
-  :data-store/remove-members-from-chat
-  (fn [[current-chat-id participants]]
-    (chats/remove-contacts current-chat-id participants)))
-
 (defn system-message [message-id content]
   {:from         "system"
    :message-id   message-id
@@ -64,7 +49,7 @@
                          {:db (-> db
                                   (assoc-in [:chats current-chat-id :contacts] participants)
                                   (assoc :selected-participants #{}))
-                          :data-store/add-members-to-chat (select-keys db [:current-chat-id :selected-participants])}
+                          :data-store/add-chat-contacts (select-keys db [:current-chat-id :selected-participants])}
                          (transport/send (group-chat/GroupAdminUpdate. participants) current-chat-id )))))
 
 (defn- remove-identities [collection identities]
@@ -77,7 +62,7 @@
                                (get-in db [:chats current-chat-id :contacts]))]
       (handlers/merge-fx cofx
                          {:db (assoc-in db [:chats current-chat-id :contacts] participants)
-                          :data-store/remove-members-from-chat [current-chat-id removed-participants]
+                          :data-store/remove-chat-contacts [current-chat-id removed-participants]
                           :data-store/create-removing-messages (merge {:participants removed-participants}
                                                                       (select-keys db [:current-chat-id :contacts/contacts]))}
                          (transport/send (group-chat/GroupAdminUpdate. participants) current-chat-id )))))
