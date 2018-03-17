@@ -21,7 +21,7 @@
              transport/schema
              contact/schema
              discover/schema
-             message/schemag 
+             message/schema 
              request/schema
              user-status/schema
              contact-group/schema
