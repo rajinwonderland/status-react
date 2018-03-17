@@ -19,7 +19,7 @@
                                                             (re-frame/dispatch [::add-new-sym-key {:sym-key-id sym-key-id
                                                                                                    :sym-key    sym-key
                                                                                                    :chat-id    chat-id
-                                                                                                   :message    this}]))}}
+                                                                                                   :message    message}]))}}
                        (protocol/init-chat chat-id))))
 
 (defrecord ContactRequest [name profile-image address fcm-token]
