@@ -164,7 +164,8 @@
     (let [contact {:whisper-identity whisper-identity
                    :address          (public-key->address whisper-identity)
                    :name             (gfycat.core/generate-gfy whisper-identity)
-                   :photo-path       (identicon/identicon whisper-identity)}]
+                   :photo-path       (identicon/identicon whisper-identity)
+                   :pending?         false}]
       (handlers/merge-fx cofx
                          (navigation/navigate-to-clean :home)
                          (add-new-contact contact)
