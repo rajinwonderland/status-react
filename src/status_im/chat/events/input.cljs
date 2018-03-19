@@ -56,7 +56,7 @@
         chat-text (if append?
                     (str current-input new-input)
                     new-input)]
-    (cond-> db
+    (cond-> (model/set-chat-ui-props db {:validation-messages nil})
       true
       (assoc-in [:chats current-chat-id :input-text] (input-model/text->emoji chat-text))
 
@@ -185,9 +185,7 @@
                 (bots-events/clear-bot-db owner-id)
                 clear-seq-arguments
                 (model/set-chat-ui-props {:show-suggestions?   false
-                                          :result-box          nil
-                                          :validation-messages nil
-                                          :prev-command        name})
+                                          :result-box          nil})
                 (set-chat-input-metadata metadata)
                 (set-chat-input-text (str (commands-model/command-name command)
                                           constants/spacing-char
@@ -281,11 +279,6 @@
 
 ;;;; Handlers
 
-(handlers/register-handler-db
-  :update-input-data
-  (fn [db]
-    (input-model/modified-db-after-change db)))
-
 (handlers/register-handler-fx
   :set-chat-input-text
   [re-frame/trim-v]
@@ -304,12 +297,6 @@
   [re-frame/trim-v]
   (fn [cofx [command metadata prevent-auto-focus?]]
     (select-chat-input-command command metadata prevent-auto-focus? cofx)))
-
-(handlers/register-handler-db
-  :set-chat-input-metadata
-  [re-frame/trim-v]
-  (fn [db [data]]
-    (set-chat-input-metadata db data)))
 
 (handlers/register-handler-db
   :set-command-argument
