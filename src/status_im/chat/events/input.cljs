@@ -331,37 +331,16 @@
       {::blur-rn-component cmp-ref})))
 
 (handlers/register-handler-fx
-  :load-chat-parameter-box
-  [re-frame/trim-v]
-  (fn [{:keys [db]} [command]]
-    (load-chat-parameter-box db command)))
-
-(handlers/register-handler-fx
   ::proceed-validation
   [re-frame/trim-v]
-  (fn [_ [{:keys [markup validationHandler parameters]} proceed-events]]
+  (fn [_ [{:keys [markup parameters]} proceed-events]]
     (let [error-events-creator (fn [validator-result]
                                  [[:set-chat-ui-props {:validation-messages  validator-result
                                                        :sending-in-progress? false}]])
-          events (cond
-                   markup
+          events (if markup
                    (error-events-creator markup)
-
-                   validationHandler
-                   [[::execute-validation-handler
-                     validationHandler parameters error-events-creator proceed-events]]
-
-                   :default
                    proceed-events)]
       {:dispatch-n events})))
-
-(handlers/register-handler-fx
-  ::execute-validation-handler
-  [re-frame/trim-v]
-  (fn [_ [validation-handler-name params error-events-creator proceed-events]]
-    (let [error-events (when-let [validator (input-model/validation-handler validation-handler-name)]
-                         (validator params error-events-creator))]
-      {:dispatch-n (or error-events proceed-events)})))
 
 (handlers/register-handler-fx
   ::send-command

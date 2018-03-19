@@ -1,12 +1,8 @@
 (ns status-im.chat.models.input
   (:require [clojure.string :as str]
-            [goog.object :as object]
-            [status-im.ui.components.react :as rc]
-            [status-im.native-module.core :as status]
+            [goog.object :as object] 
             [status-im.chat.constants :as const]
-            [status-im.chat.models.commands :as commands-model]
-            [status-im.chat.views.input.validation-messages :refer [validation-message]] 
-            [status-im.i18n :as i18n]
+            [status-im.chat.models.commands :as commands-model] 
             [status-im.js-dependencies :as dependencies]
             [taoensso.timbre :as log]))
 
@@ -226,5 +222,3 @@
                      {:result-box          nil
                       :validation-messages nil
                       :prev-command        (-> command :command :name)})))))
-
-(defmulti validation-handler (fn [name] (keyword name)))
