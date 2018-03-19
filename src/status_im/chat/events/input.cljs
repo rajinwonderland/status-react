@@ -286,12 +286,6 @@
     (-> (set-chat-input-text db text)
         (call-on-message-input-change))))
 
-(handlers/register-handler-db
-  :add-to-chat-input-text
-  [re-frame/trim-v]
-  (fn [db [text-to-add]]
-    (set-chat-input-text db text-to-add :append? true)))
-
 (handlers/register-handler-fx
   :select-chat-input-command
   [re-frame/trim-v]
@@ -396,12 +390,6 @@
             (command-complete-fx db chat-command message-id current-time)
             (command-not-complete-fx db input-text))
           (plain-text-message-fx db cofx input-text current-chat-id current-public-key))))))
-
-;; TODO: remove this handler and leave only helper fn once all invocations are refactored
-(handlers/register-handler-db
-  :clear-seq-arguments
-  (fn [db]
-    (clear-seq-arguments db)))
 
 (handlers/register-handler-db
   ::update-seq-arguments
