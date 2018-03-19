@@ -75,8 +75,8 @@
       (respond {:type :error
                 :text "Your DApp or bot should be debuggable."}))
     (respond {:type :error
-              :text "There is no such DApp or bot."}))
-  (re-frame/dispatch [:remove-contact whisper-identity #(and (:dapp? %) (:debug? %))]))
+              :text "There is no such DApp or bot."})) 
+  (re-frame/dispatch [:remove-contact whisper-identity]))
 
 (defn contact-changed
   [{:keys          [webview-bridge current-chat-id]

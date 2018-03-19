@@ -239,7 +239,7 @@
   :update-chat!
   [re-frame/trim-v]
   (fn [cofx [chat]]
-    (models/update-chat cofx chat)))
+    (models/update-chat chat cofx)))
 
 (handlers/register-handler-fx
   :remove-chat

@@ -157,23 +157,6 @@
                                                                            :updates-public-key :updates-private-key]))))))
 
 (handlers/register-handler-fx
-  :account-update-keys
-  [(re-frame/inject-cofx :get-new-keypair!)]
-  (fn [{:keys [db keypair now]} _]
-    (let [{:accounts/keys [accounts current-account-id]} db
-          {:keys [public private]} keypair
-          current-account (get accounts current-account-id)
-          new-account     (merge current-account {:updates-public-key  public
-                                                  :updates-private-key private
-                                                  :last-updated        now})]
-      {:db                (assoc-in db [:accounts/accounts current-account-id] new-account)
-       :save-account      new-account
-       ::send-keys-update (merge
-                           (select-keys db [:web3 :current-public-key :contacts])
-                           (select-keys new-account [:updates-public-key
-                                                     :updates-private-key]))})))
-
-(handlers/register-handler-fx
   :send-account-update-if-needed
   (fn [{{:accounts/keys [accounts current-account-id] :as db} :db now :now} _]
     (let [{:keys [last-updated]} (get accounts current-account-id)

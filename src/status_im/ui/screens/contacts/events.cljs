@@ -1,29 +1,22 @@
 (ns status-im.ui.screens.contacts.events
-  (:require [re-frame.core :as re-frame]
-            [status-im.utils.handlers :as handlers]
-            [clojure.string :as s]
-            [status-im.utils.utils :refer [http-post]]
-            [status-im.utils.random :as random]
-            [taoensso.timbre :as log]
-            [cljs.reader :refer [read-string]]
+  (:require [cljs.reader :as reader]
+            [re-frame.core :as re-frame]
+            [status-im.utils.handlers :as handlers] 
+            [taoensso.timbre :as log] 
             [status-im.utils.js-resources :as js-res]
             [status-im.utils.datetime :as datetime]
             [status-im.utils.identicon :as identicon]
-            [status-im.utils.gfycat.core :as gfycat.core]
-            [status-im.react-native.js-dependencies :as rn-dependencies]
-            [status-im.js-dependencies :as dependencies]
-            [status-im.i18n :refer [label]]
+            [status-im.utils.gfycat.core :as gfycat.core] 
+            [status-im.js-dependencies :as dependencies] 
             [status-im.ui.screens.contacts.navigation]
-            [status-im.ui.screens.navigation :as navigation]
-            [status-im.ui.screens.discover.events :as discover-events]
+            [status-im.ui.screens.navigation :as navigation] 
             [status-im.chat.console :as console-chat]
             [status-im.chat.events :as chat.events]
+            [status-im.chat.models :as chat.models]
             [status-im.commands.events.loading :as loading-events]
             [status-im.transport.message.core :as transport]
-            [status-im.transport.message.v1.contact :as transport-contact]
-            [cljs.spec.alpha :as spec]
-            [status-im.ui.screens.add-new.new-chat.db :as new-chat.db]
-            [clojure.string :as string]))
+            [status-im.transport.message.v1.contact :as transport-contact] 
+            [status-im.ui.screens.add-new.new-chat.db :as new-chat.db]))
 ;;;; COFX
 
 (re-frame/reg-cofx
@@ -33,20 +26,12 @@
            :default-contacts js-res/default-contacts
            :default-groups js-res/default-contact-groups)))
 
-(defn- contact-name [contact]
-  (->> contact
-       ((juxt :givenName :middleName :familyName))
-       (remove s/blank?)
-       (s/join " ")))
-
 ;;;; Handlers
 
-(handlers/register-handler-fx
-  :update-contact!
-  (fn [{:keys [db]} [_ {:keys [whisper-identity] :as contact}]]
-    (when (get-in db [:contacts/contacts whisper-identity])
-      {:db           (update-in db [:contacts/contacts whisper-identity] merge contact)
-       :save-contact contact})))
+(defn- update-contact [{:keys [whisper-identity] :as contact} {:keys [db]}]
+  (when (get-in db [:contacts/contacts whisper-identity])
+    {:db           (update-in db [:contacts/contacts whisper-identity] merge contact)
+     :save-contact contact}))
 
 (defn- update-pending-status [old-contacts {:keys [whisper-identity pending?] :as contact}]
   (let [{old-pending :pending?
@@ -189,7 +174,7 @@
 (defn add-pending-contact [chat-or-whisper-id {:keys [db] :as cofx}]
   (let [{:keys [chats] :contacts/keys [contacts]} db
         contact (-> (if-let [contact-info (get-in chats [chat-or-whisper-id :contact-info])]
-                      (read-string contact-info)
+                      (reader/read-string contact-info)
                       (get contacts chat-or-whisper-id))
                     (assoc :address  (public-key->address chat-or-whisper-id)
                            :pending? false))]
@@ -211,66 +196,51 @@
         fx
         (handlers/merge-fx fx (add-contact-and-open-chat contact-identity))))))
 
-(handlers/register-handler-fx
-  :contact-update-received
-  (fn [{:keys [db]} [_ {:keys [from payload]}]]
-    (let [{:keys [chats current-public-key]} db]
-      (when (not= current-public-key from)
-        (let [{:keys [content timestamp]} payload
-              {:keys [status name profile-image]} (:profile content)
-              prev-last-updated (get-in db [:contacts/contacts from :last-updated])]
-          (when (<= prev-last-updated timestamp)
-            (let [contact {:whisper-identity from
-                           :name             name
-                           :photo-path       profile-image
-                           :status           status
-                           :last-updated     timestamp}]
-              {:dispatch-n (concat [[:update-contact! contact]]
-                                   (when (chats from)
-                                     [[:update-chat! {:chat-id from
-                                                      :name    name}]]))})))))))
+#_(handlers/register-handler-fx
+    :contact-update-received
+    (fn [{:keys [db] :as cofx} [_ {:keys [from payload]}]]
+      (let [{:keys [chats current-public-key]} db]
+        (when (not= current-public-key from)
+          (let [{:keys [content timestamp]} payload
+                {:keys [status name profile-image]} (:profile content)
+                prev-last-updated (get-in db [:contacts/contacts from :last-updated])]
+            (when (<= prev-last-updated timestamp)
+              (let [contact {:whisper-identity from
+                             :name             name
+                             :photo-path       profile-image
+                             :status           status
+                             :last-updated     timestamp}]
+                (if (chats from)
+                  (handlers/merge-fx cofx
+                                     (update-contact contact)
+                                     (chat.models/update-chat {:chat-id from
+                                                               :name    name}))
+                  (update-contact contact cofx)))))))))
 
-(handlers/register-handler-fx
-  :update-keys-received
-  (fn [{:keys [db]} [_ {:keys [from payload]}]]
-    (let [{{:keys [public private]} :keypair
-           timestamp                :timestamp} payload
-          prev-last-updated (get-in db [:contacts/contacts from :keys-last-updated])]
-      (when (<= prev-last-updated timestamp)
-        (let [contact {:whisper-identity  from
-                       :public-key        public
-                       :private-key       private
-                       :keys-last-updated timestamp}]
-          {:dispatch [:update-contact! contact]})))))
-
-(handlers/register-handler-fx
-  :contact-online-received
-  (fn [{:keys [db]} [_ {:keys                          [from]
-                        {{:keys [timestamp]} :content} :payload}]]
-    (let [prev-last-online (get-in db [:contacts/contacts from :last-online])]
-      (when (and timestamp (< prev-last-online timestamp))
-        {::reset-pending-messages from
-         :dispatch                [:update-contact! {:whisper-identity from
-                                                     :last-online      timestamp}]}))))
+#_(handlers/register-handler-fx
+    :contact-online-received
+    (fn [{:keys [db] :as cofx} [_ {:keys                          [from]
+                                   {{:keys [timestamp]} :content} :payload}]]
+      (let [prev-last-online (get-in db [:contacts/contacts from :last-online])]
+        (when (and timestamp (< prev-last-online timestamp))
+          (update-contact {:whisper-identity from
+                           :last-online      timestamp}
+                          cofx)))))
 
 (handlers/register-handler-fx
   :hide-contact
-  (fn [{:keys [db]} [_ {:keys [whisper-identity] :as contact}]]
-    {::stop-watching-contact (merge
-                              (select-keys db [:web3])
-                              (select-keys contact [:whisper-identity]))
-     :dispatch-n [[:update-contact! {:whisper-identity whisper-identity
-                                     :pending?         true}]
-                  [:account-update-keys]]}))
+  (fn [cofx [_ {:keys [whisper-identity] :as contact}]]
+    (update-contact {:whisper-identity whisper-identity
+                     :pending?         true}
+                    cofx)))
 
 ;;used only by status-dev-cli
 (handlers/register-handler-fx
   :remove-contact
-  (fn [{:keys [db]} [_ whisper-identity pred]]
-    (let [contact (get-in db [:contacts/contacts whisper-identity])]
-      (when (and contact (pred contact))
-        {:db             (update db :contacts/contacts dissoc whisper-identity)
-         :delete-contact contact}))))
+  (fn [{:keys [db]} [_ whisper-identity]]
+    (when-let [contact (get-in db [:contacts/contacts whisper-identity])]
+      {:db             (update db :contacts/contacts dissoc whisper-identity)
+       :delete-contact contact})))
 
 (handlers/register-handler-fx
   :open-contact-toggle-list
@@ -291,6 +261,6 @@
 
 (handlers/register-handler-fx
   :add-contact-handler
-  (fn [{{:contacts/keys [new-identity] :as db} :db :as cofx}]
+  (fn [{{:contacts/keys [new-identity] :as db} :db :as cofx} _]
     (when (seq new-identity)
       (add-contact-and-open-chat new-identity cofx))))
