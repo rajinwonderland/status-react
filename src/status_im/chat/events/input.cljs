@@ -283,8 +283,11 @@
   :set-chat-input-text
   [re-frame/trim-v]
   (fn [{:keys [db]} [text]]
-    (-> (set-chat-input-text db text)
-        (call-on-message-input-change))))
+    (let [new-db (set-chat-input-text db text)
+          fx     (call-on-message-input-change new-db)]
+      (if-let [{:keys [command]} (input-model/selected-chat-command new-db)]
+        (merge fx (load-chat-parameter-box new-db command))
+        fx))))
 
 (handlers/register-handler-fx
   :select-chat-input-command
