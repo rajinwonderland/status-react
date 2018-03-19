@@ -69,16 +69,15 @@
 
 (defn remove-chat [chat-id {:keys [db]}]
   (let [{:keys [chat-id group-chat debug?]} (get-in db [:chats chat-id])]
-    (cond-> {:db                      (-> db
-                                          (update :chats dissoc chat-id)
-                                          (update :deleted-chats (fnil conj #{}) chat-id))
-             :delete-pending-messages chat-id}
-            (or group-chat debug?)
-            (assoc :delete-messages chat-id)
-            debug?
-            (assoc :delete-chat chat-id)
-            (not debug?)
-            (assoc :deactivate-chat chat-id))))
+    (cond-> {:db (-> db
+                     (update :chats dissoc chat-id)
+                     (update :deleted-chats (fnil conj #{}) chat-id))}
+      (or group-chat debug?)
+      (assoc :delete-messages chat-id)
+      debug?
+      (assoc :delete-chat chat-id)
+      (not debug?)
+      (assoc :deactivate-chat chat-id))))
 
 (defn bot-only-chat? [db chat-id]
   (let [{:keys [group-chat contacts]} (get-in db [:chats chat-id])]
