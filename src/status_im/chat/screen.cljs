@@ -38,7 +38,7 @@
   (letsubs [{:keys [pending?] :as contact} [:contact-by-identity contact-identity]]
     (when (or pending? (not contact)) ;; contact is pending or not in contact list at all
       [react/touchable-highlight
-       {:on-press #(re-frame/dispatch [:add-pending-contact contact-identity])}
+       {:on-press #(re-frame/dispatch [:add-contact contact-identity])}
        [react/view style/add-contact
         [react/text {:style style/add-contact-text}
          (i18n/label :t/add-to-contacts)]]])))
