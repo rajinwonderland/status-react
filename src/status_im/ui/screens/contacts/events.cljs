@@ -257,7 +257,7 @@
   (fn [{:keys [db] :as cofx} [_ {:keys [whisper-identity] :as contact}]]
     (handlers/merge-fx cofx
                        (navigation/navigate-to-clean :home)
-                       (chat.events/start-chat whisper-identity)
+                       (chat.events/start-chat whisper-identity {})
                        (send-contact-request contact))))
 
 (handlers/register-handler-fx

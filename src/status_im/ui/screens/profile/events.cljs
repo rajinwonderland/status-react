@@ -31,7 +31,7 @@
   (fn [{{:contacts/keys [contacts]} :db :as cofx} [chat-id]]
     (let [send-command (get-in contacts chat-const/send-command-ref)]
       (handlers/merge-fx cofx
-                         (chat-events/start-chat chat-id true)
+                         (chat-events/start-chat chat-id {:navigation-replace? true})
                          (input-events/select-chat-input-command send-command nil true)))))
 
 (defn get-current-account [{:accounts/keys [current-account-id] :as db}]

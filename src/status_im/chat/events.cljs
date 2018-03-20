@@ -221,7 +221,7 @@
 
 (defn start-chat
   "Start a chat, making sure it exists"
-  [chat-id navigation-replace? {:keys [db] :as cofx}]
+  [chat-id {:keys [navigation-replace?]} {:keys [db] :as cofx}]
   (when (not= (:current-public-key db) chat-id) ; don't allow to open chat with yourself
     (handlers/merge-fx
       cofx
@@ -231,8 +231,8 @@
 (handlers/register-handler-fx
   :start-chat
   [(re-frame/inject-cofx :get-stored-chat) re-frame/trim-v]
-  (fn [cofx [contact-id {:keys [navigation-replace?]}]]
-      (start-chat contact-id navigation-replace? cofx)))
+  (fn [cofx [contact-id opts]]
+    (start-chat contact-id opts cofx)))
 
 ;; TODO(janherich): remove this unnecessary event in the future (only model function `update-chat` will stay)
 (handlers/register-handler-fx
@@ -270,7 +270,7 @@
     (if (get-in db [:chats topic])
       (handlers/merge-fx cofx
                          (navigation/navigate-to-clean :home)
-                         (navigate-to-chat topic))
+                         (navigate-to-chat true topic))
       (let [chat {:chat-id               topic
                   :name                  topic
                   :color                 components.styles/default-chat-color
@@ -283,5 +283,5 @@
         (handlers/merge-fx {:db        (assoc-in db [:chats topic] chat)
                             :save-chat chat}
                            (navigation/navigate-to-clean :home)
-                           (navigate-to-chat topic)
+                           (navigate-to-chat true topic)
                            (public-chat/join-public-chat topic))))))
