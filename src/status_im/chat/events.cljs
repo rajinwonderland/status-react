@@ -200,33 +200,33 @@
 
 (defn- ensure-chat-exists
   "Takes chat-id and coeffects map and returns fx to create chat if it doesn't exist"
-  [chat-id cofx]
-  (when-not (get-in cofx [:db :chats chat-id])
-    (models/add-chat cofx chat-id)))
+  [chat-id {:keys [db] :as cofx}]
+  (when-not (get-in cofx [:chats chat-id])
+    (models/add-chat chat-id cofx)))
 
 (defn- navigate-to-chat
   "Takes coeffects map and chat-id, returns effects necessary for navigation and preloading data"
-  [chat-id navigation-replace? cofx]
+  [chat-id {:keys [navigation-replace?]} {:keys [db] :as cofx}]
   (let [nav-fn (if navigation-replace?
                  #(navigation/replace-view % :chat)
                  #(navigation/navigate-to % :chat))]
-    (-> (preload-chat-data chat-id cofx)
-        (update :db nav-fn))))
+    (handlers/merge-fx cofx
+                       {:db (nav-fn db)}
+                       (preload-chat-data chat-id))))
 
 (handlers/register-handler-fx
   :navigate-to-chat
   [re-frame/trim-v]
-  (fn [cofx [chat-id {:keys [navigation-replace?]}]]
-    (navigate-to-chat chat-id navigation-replace? cofx)))
+  (fn [cofx [chat-id opts]]
+    (navigate-to-chat chat-id opts cofx)))
 
 (defn start-chat
   "Start a chat, making sure it exists"
-  [chat-id {:keys [navigation-replace?]} {:keys [db] :as cofx}]
+  [chat-id opts {:keys [db] :as cofx}]
   (when (not= (:current-public-key db) chat-id) ; don't allow to open chat with yourself
-    (handlers/merge-fx
-      cofx
-      (ensure-chat-exists chat-id)
-      (navigate-to-chat chat-id navigation-replace?))))
+    (handlers/merge-fx cofx
+                       (ensure-chat-exists chat-id)
+                       (navigate-to-chat chat-id opts))))
 
 (handlers/register-handler-fx
   :start-chat
@@ -270,7 +270,7 @@
     (if (get-in db [:chats topic])
       (handlers/merge-fx cofx
                          (navigation/navigate-to-clean :home)
-                         (navigate-to-chat true topic))
+                         (navigate-to-chat topic {:navigation-replace? true}))
       (let [chat {:chat-id               topic
                   :name                  topic
                   :color                 components.styles/default-chat-color
@@ -283,5 +283,5 @@
         (handlers/merge-fx {:db        (assoc-in db [:chats topic] chat)
                             :save-chat chat}
                            (navigation/navigate-to-clean :home)
-                           (navigate-to-chat true topic)
+                           (navigate-to-chat topic {:navigation-replace? true})
                            (public-chat/join-public-chat topic))))))

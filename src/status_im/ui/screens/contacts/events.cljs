@@ -190,6 +190,7 @@
 
 (handlers/register-handler-fx
   :set-contact-identity-from-qr
+  [(re-frame/inject-cofx :get-stored-chat)]
   (fn [{{:accounts/keys [accounts current-account-id] :as db} :db} [_ _ contact-identity]]
     (let [current-account (get accounts current-account-id)
           fx              {:db (assoc db :contacts/new-identity contact-identity)}]
@@ -262,6 +263,7 @@
 
 (handlers/register-handler-fx
   :add-contact-handler
+  [(re-frame/inject-cofx :get-stored-chat)]
   (fn [{{:contacts/keys [new-identity] :as db} :db :as cofx} _]
     (when (seq new-identity)
       (add-contact-and-open-chat new-identity cofx))))
