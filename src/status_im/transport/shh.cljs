@@ -64,7 +64,6 @@
                                         (if-not err
                                           (on-success resp)
                                           (on-error err))))))
-
 (re-frame/reg-fx
   :shh/post
   (fn [{:keys [web3 message success-event error-event]
@@ -76,6 +75,20 @@
                                  #(re-frame/dispatch success-event)
                                  #(log/debug :ssh/post-success))
                    :on-error   #(re-frame/dispatch [error-event %])})))
+
+(re-frame/reg-fx
+  :shh/multi-post
+  (fn [{:keys [web3 message public-keys success-event error-event]
+        :or {error-event   :protocol/send-status-message-error}}]
+    (let [whisper-message (update message :payload (comp transport.utils/from-utf8
+                                                         transit/serialize))]
+      (doseq [public-key public-keys]
+        (post-message {:web3            web3
+                       :whisper-message (assoc whisper-message :pubKey public-key)
+                       :on-success      (if success-event
+                                          #(re-frame/dispatch success-event)
+                                          #(log/debug :ssh/post-success))
+                       :on-error        #(re-frame/dispatch [error-event %])})))))
 
 (defn add-sym-key
   [{:keys [web3 sym-key on-success on-error]}]

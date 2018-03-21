@@ -97,6 +97,18 @@
   (fn [message]
     (async/go (async/>! core/realm-queue #(save message)))))
 
+(re-frame/reg-fx
+  :system-message
+  (fn [{:keys [message-id chat-id timestamp content]
+        :or {message-id (random/id)
+             timestamp  (datetime/timestamp)}}]
+    (async/go (async/>! core/realm-queue #(save {:from         "system"
+                                                 :message-id   message-id
+                                                 :chat-id      chat-id
+                                                 :timestamp    timestamp
+                                                 :content      content
+                                                 :content-type constants/text-content-type})))))
+
 (defn update-message
   [{:keys [message-id] :as message}]
   (when-let [{:keys [chat-id]} (data-store/get-by-id message-id)]

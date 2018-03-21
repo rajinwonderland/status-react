@@ -1,6 +1,6 @@
 (ns status-im.ui.screens.group.chat-settings.events
   (:require [re-frame.core :as re-frame]
-            [status-im.constants :as constants] 
+            [status-im.constants :as constants]
             [status-im.data-store.messages :as messages]
             [status-im.i18n :as i18n]
             [status-im.transport.message.v1.group-chat :as group-chat]
@@ -8,26 +8,6 @@
             [status-im.utils.handlers :as handlers]
             [status-im.utils.random :as random]))
 
-;;;; FX
-
-(defn system-message [message-id content]
-  {:from         "system"
-   :message-id   message-id
-   :content      content
-   :content-type constants/text-content-type})
-
-(defn removed-participant-message [chat-id identity contact-name]
-  (let [message-text (str "You've removed " (or contact-name identity))]
-    (-> (system-message (random/id) message-text)
-        (assoc :chat-id chat-id)
-        (messages/save))))
-
-(re-frame/reg-fx
-  :data-store/create-removing-messages
-  (fn [{:keys [current-chat-id participants contacts/contacts]}]
-    (doseq [participant participants]
-      (let [contact-name (get-in contacts [participant :name])]
-        (removed-participant-message current-chat-id participant contact-name)))))
 
 ;;;; Handlers
 
@@ -40,30 +20,35 @@
 
 (handlers/register-handler-fx
   :add-new-group-chat-participants
-  (fn [{{:keys [current-chat-id selected-participants] :as db} :db :as cofx} _]
-    (let [new-identities (map #(hash-map :identity %) selected-participants)
-          participants   (concat (get-in db [:chats current-chat-id :contacts])
-                                 selected-participants)]
+  (fn [{{:keys [current-chat-id selected-participants] :as db} :db now :now :as cofx} _]
+    (let [new-identities           (map #(hash-map :identity %) selected-participants)
+          participants             (concat (get-in db [:chats current-chat-id :contacts])
+                                           selected-participants)
+          contacts                 (:contacts/contacts db)
+          added-participants-names (map #(get-in contacts [% :name]) selected-participants)]
       (handlers/merge-fx cofx
                          {:db (-> db
                                   (assoc-in [:chats current-chat-id :contacts] participants)
                                   (assoc :selected-participants #{}))
-                          :data-store/add-chat-contacts (select-keys db [:current-chat-id :selected-participants])}
+                          :data-store/add-chat-contacts (select-keys db [:current-chat-id :selected-participants])
+                          :system-message {:chat-id   current-chat-id
+                                           :timestamp now
+                                           :content (str "You've added " (apply str (interpose ", " added-participants-names)))}}
                          (transport/send (group-chat/GroupAdminUpdate. participants) current-chat-id )))))
-
-(defn- remove-identities [collection identities]
-  )
 
 (handlers/register-handler-fx
   :remove-group-chat-participants
-  (fn [{{:keys [current-chat-id] :as db} :db :as cofx} [_ removed-participants]]
-    (let [participants (remove #(removed-participants (:identity %))
-                               (get-in db [:chats current-chat-id :contacts]))]
+  (fn [{{:keys [current-chat-id] :as db} :db now :now :as cofx} [_ removed-participants]]
+    (let [participants               (remove #(removed-participants (:identity %))
+                                             (get-in db [:chats current-chat-id :contacts]))
+          contacts                   (:contacts/contacts db)
+          removed-participants-names (map #(get-in contacts [% :name]) removed-participants)]
       (handlers/merge-fx cofx
                          {:db (assoc-in db [:chats current-chat-id :contacts] participants)
                           :data-store/remove-chat-contacts [current-chat-id removed-participants]
-                          :data-store/create-removing-messages (merge {:participants removed-participants}
-                                                                      (select-keys db [:current-chat-id :contacts/contacts]))}
+                          :system-message {:chat-id current-chat-id
+                                           :timestamp now
+                                           :content (str "You've removed " (apply str (interpose ", " removed-participants-names)))}}
                          (transport/send (group-chat/GroupAdminUpdate. participants) current-chat-id )))))
 
 (handlers/register-handler-fx

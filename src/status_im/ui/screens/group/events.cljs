@@ -1,7 +1,7 @@
 (ns status-im.ui.screens.group.events
   (:require [re-frame.core :refer [dispatch reg-fx reg-cofx inject-cofx]]
             [status-im.utils.handlers :refer [register-handler-db register-handler-fx]]
-            [status-im.ui.components.styles :refer [default-chat-color]] 
+            [status-im.ui.components.styles :refer [default-chat-color]]
             [clojure.string :as string]
             [status-im.utils.random :as random]
             [status-im.ui.screens.group.navigation]
