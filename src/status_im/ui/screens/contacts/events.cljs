@@ -156,8 +156,8 @@
 (defn send-contact-request [{:keys [whisper-identity pending? dapp?] :as contact} {:keys [db] :as cofx}]
   (when-not dapp?
     (if pending?
-      (transport/send (transport-contact/map->ContactRequestConfirmed (own-info db)) whisper-identity cofx))
-      (transport/send (transport-contact/map->ContactRequest (own-info db)) whisper-identity cofx)))
+      (transport/send (transport-contact/map->ContactRequestConfirmed (own-info db)) whisper-identity cofx)
+      (transport/send (transport-contact/map->ContactRequest (own-info db)) whisper-identity cofx))))
 
 (defn- build-contact [whisper-id {{:keys [chats] :contacts/keys [contacts]} :db}]
   (-> (if-let [contact-info (get-in chats [whisper-id :contact-info])]
@@ -174,9 +174,9 @@
 
 (defn add-contact-and-open-chat [whisper-id cofx]
   (handlers/merge-fx cofx
-      (navigation/navigate-to-clean :home)
-      (add-contact whisper-id)
-      (chat.events/start-chat whisper-id {})))
+                     (navigation/navigate-to-clean :home)
+                     (add-contact whisper-id)
+                     (chat.events/start-chat whisper-id {})))
 
 (handlers/register-handler-fx
   :add-contact

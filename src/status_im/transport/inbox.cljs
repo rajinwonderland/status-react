@@ -165,7 +165,8 @@
       (println #_log/info (str "offline inbox: mark-trusted-peer response" wnode response))
       {:shh/generate-sym-key-from-password {:password   password
                                             :web3       web3
-                                            :on-success #(re-frame/dispatch [::request-messages %])
+                                            :on-success (fn [_ sym-key-id]
+                                                          (re-frame/dispatch [::request-messages sym-key-id]))
                                             :on-error   #(log/error "offline inbox: get-sym-key error" %)}})))
 
 (handlers/register-handler-fx
