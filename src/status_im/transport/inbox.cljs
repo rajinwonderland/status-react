@@ -150,7 +150,7 @@
                         (< retries 10)  1000
                         :else           5000)]
             (if (> retries 100)
-              (log/error "Number of retries for fetching peers exceed") wnode
+              (log/error "Number of retries for fetching peers exceed" wnode)
               {:dispatch-later [{:ms delay :dispatch [::fetch-peers {:web3 web3
                                                                      :retries (inc retries)}]}]})))))))
 (handlers/register-handler-fx

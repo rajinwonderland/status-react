@@ -1,5 +1,5 @@
 (ns status-im.transport.message.v1.protocol
-  (:require [status-im.utils.config]
+  (:require [status-im.utils.config :as config]
             [status-im.transport.message-cache :as message-cache]
             [status-im.transport.db :as transport.db]
             [status-im.transport.core :as transport]
