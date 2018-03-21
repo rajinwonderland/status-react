@@ -41,15 +41,15 @@
   ;; retrieves all the information known about the connected remote nodes
   ;; TODO(dmitryn): use web3 instead of rpc call
   [success-fn error-fn]
-  (let [args {:jsonrpc "2.0"
-              :id 2
-              :method "admin_peers"
-              :params []}
+  (let [args    {:jsonrpc "2.0"
+                 :id 2
+                 :method "admin_peers"
+                 :params []}
         payload (.stringify js/JSON (clj->js args))]
     (status/call-web3 payload (response-handler error-fn success-fn))))
 
 (defn registered-peer? [peers enode]
-  (let [peer-ids (set (map :id peers))
+  (let [peer-ids (into #{} (map :id) peers)
         enode-id (web3.utils/extract-enode-id enode)]
     (contains? peer-ids enode-id)))
 
@@ -76,10 +76,6 @@
                         (if-not err
                           (error-fn resp)
                           (success-fn err))))))
-
-(defn initialize! [web3]
-  (re-frame/dispatch [:initialize-offline-inbox web3]))
-
 
 (re-frame/reg-fx
   ::add-peer
@@ -115,19 +111,17 @@
                       #(log/info "offline inbox: request-messages response" %)
                       #(log/error "offline inbox: request-messages error" %))))
 
-
 ;;;; Handlers
 
 (handlers/register-handler-fx
   :initialize-offline-inbox
   ;; NOTE(dmitryn): events chain
   ;; add-peer -> fetch-peers -> check-peer-added -> mark-trusted-peer -> get-sym-key -> request-messages
-  (fn [{:keys [db]} [_ web3]]
+  (fn [{:keys [db]} _]
     (log/info "offline inbox: initialize")
     (let [wnode-id (get db :inbox/wnode)
           wnode    (get-in db [:inbox/wnodes wnode-id :address])]
       {::add-peer {:wnode wnode}})))
-
 
 (handlers/register-handler-fx
   ::fetch-peers
@@ -142,7 +136,7 @@
   ;; We check if the wnode is part of the peers list
   ;; if not we dispatch a new fetch-peer event for later
   (fn [{:keys [db]} [_ peers retries]]
-    (let [web3 (:web3 db)
+    (let [web3     (:web3 db)
           wnode-id (get db :inbox/wnode)
           wnode    (get-in db [:inbox/wnodes wnode-id :address])]
       (log/info "offline inbox: fetch-peers response" peers)
@@ -156,10 +150,9 @@
                         (< retries 10)  1000
                         :else           5000)]
             (if (> retries 100)
-              (log/error "Number of retries for fetching peers exceed" wnode)
-              {:dispatch-later {:ms delay :dispatch [::fetch-peers {:web3 web3
-                                                                    :retries (inc retries)}]}})))))))
-
+              (log/error "Number of retries for fetching peers exceed") wnode
+              {:dispatch-later [{:ms delay :dispatch [::fetch-peers {:web3 web3
+                                                                     :retries (inc retries)}]}]})))))))
 (handlers/register-handler-fx
   ::get-sym-key
   ;; TODO(yenda): using core async flow this event can be done in parallel
@@ -169,7 +162,7 @@
           wnode-id (get db :inbox/wnode)
           wnode    (get-in db [:inbox/wnodes wnode-id :address])
           password (:inbox/password db)]
-      (log/info "offline inbox: mark-trusted-peer response" wnode response)
+      (println #_log/info (str "offline inbox: mark-trusted-peer response" wnode response))
       {:shh/generate-sym-key-from-password {:password   password
                                             :web3       web3
                                             :on-success #(re-frame/dispatch [::request-messages %])
@@ -180,7 +173,7 @@
   ;; TODO(yenda): we want to request-message once per topic and for specific timespan so
   ;; we want a plural version of this function that does the right thing
   (fn [{:keys [db]} [_ sym-key-id]]
-    (log/info "offline inbox: get-sym-key response" sym-key-id)
+    (log/info "offline inbox: get-sym-key response") sym-key-id
     (let [web3 (:web3 db)
           wnode-id (get db :inbox/wnode)
           wnode    (get-in db [:inbox/wnodes wnode-id :address])
