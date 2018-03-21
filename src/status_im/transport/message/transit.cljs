@@ -1,6 +1,7 @@
 (ns status-im.transport.message.transit
   (:require [status-im.transport.message.v1.contact :as v1.contact]
             [status-im.transport.message.v1.protocol :as v1.protocol]
+            [status-im.transport.message.v1.group-chat :as v1.group-chat]
             [cognitect.transit :as transit]))
 
 (deftype NewContactKeyHandler []
