@@ -20,7 +20,7 @@ requests==2.18.3
 sauceclient==1.0.0
 selenium==3.8.1
 six==1.10.0
-urllib3==1.22
+urllib3==1.24.2
 yarl==0.12.0
 zbarlight==1.2
 eth-utils==0.7.4
